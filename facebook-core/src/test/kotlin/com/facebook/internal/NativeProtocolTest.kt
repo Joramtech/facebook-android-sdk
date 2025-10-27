@@ -359,6 +359,237 @@ class NativeProtocolTest : FacebookPowerMockTestCase() {
     }
 
     @Test
+    fun `native intent generation with redirectURI uses DIALOG_HTTPS_REDIRECT_URI`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+        val customRedirectURI = "https://example.com/custom/redirect"
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                customRedirectURI, // redirectURI
+                null // intentUriPackageTarget
+            )
+
+        assertThat(katanaIntent[0]?.getStringExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI))
+            .isEqualTo(customRedirectURI)
+        assertThat(katanaIntent[0]?.hasExtra("intent_uri_package_target")).isFalse()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.getStringExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI))
+            .isEqualTo(customRedirectURI)
+        assertThat(wakizashiIntent?.hasExtra("intent_uri_package_target")).isFalse()
+    }
+
+    @Test
+    fun `native intent generation with intentUriPackageTarget uses intent_uri_package_target extra`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+        val packageName = "com.example.app"
+        val expectedIntentUri = "intent://$packageName"
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                null, // redirectURI (not provided)
+                packageName // intentUriPackageTarget (just package name)
+            )
+
+        assertThat(katanaIntent[0]?.getStringExtra("intent_uri_package_target"))
+            .isEqualTo(expectedIntentUri)
+        assertThat(katanaIntent[0]?.hasExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI)).isFalse()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.getStringExtra("intent_uri_package_target"))
+            .isEqualTo(expectedIntentUri)
+        assertThat(wakizashiIntent?.hasExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI)).isFalse()
+    }
+
+    @Test
+    fun `native intent generation redirectURI takes priority over intentUriPackageTarget`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+        val customRedirectURI = "https://example.com/custom/redirect"
+        val packageName = "com.example.app"
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                customRedirectURI, // redirectURI (both provided)
+                packageName // intentUriPackageTarget (just package name)
+            )
+
+        // redirectURI takes priority - use DIALOG_HTTPS_REDIRECT_URI
+        assertThat(katanaIntent[0]?.getStringExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI))
+            .isEqualTo(customRedirectURI)
+        assertThat(katanaIntent[0]?.hasExtra("intent_uri_package_target")).isFalse()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.getStringExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI))
+            .isEqualTo(customRedirectURI)
+        assertThat(wakizashiIntent?.hasExtra("intent_uri_package_target")).isFalse()
+    }
+
+    @Test
+    fun `native intent generation without redirectURI or intentUriPackageTarget has no extra params`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                null, // redirectURI (not provided)
+                null // intentUriPackageTarget (not provided)
+            )
+
+        // Neither parameter should be present
+        assertThat(katanaIntent[0]?.hasExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI)).isFalse()
+        assertThat(katanaIntent[0]?.hasExtra("intent_uri_package_target")).isFalse()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.hasExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI)).isFalse()
+        assertThat(wakizashiIntent?.hasExtra("intent_uri_package_target")).isFalse()
+    }
+
+    @Test
+    fun `native intent generation with null intentUriPackageTarget`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                null, // redirectURI
+                null // intentUriPackageTarget (explicitly null)
+            )
+
+        // Verify intent_uri_package_target is NOT set when null
+        assertThat(katanaIntent[0]?.hasExtra("intent_uri_package_target")).isFalse()
+        assertThat(katanaIntent[0]?.getStringExtra("intent_uri_package_target")).isNull()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.hasExtra("intent_uri_package_target")).isFalse()
+        assertThat(wakizashiIntent?.getStringExtra("intent_uri_package_target")).isNull()
+    }
+
+    @Test
+    fun `native intent generation with empty intentUriPackageTarget`() {
+        val mockContext = mock<Context>()
+        setUpMockingForNativeIntentGeneration(mockContext)
+
+        val katanaIntent =
+            NativeProtocol.createProxyAuthIntents(
+                mockContext,
+                mockAppID,
+                listOf<String>(), // permissions
+                "", // e2e
+                false, // isRerequest
+                false, // isForPublish
+                DefaultAudience.FRIENDS, // defaultAudience
+                "", // clientState
+                "", // authType
+                false, // ignoreAppSwitchToLoggedOut
+                null, // messengerPageId
+                false, // resetMessengerState
+                false, // isFamilyLogin
+                false, // shouldSkipAccountDedupe
+                null, // nonce
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                null, // redirectURI
+                "" // intentUriPackageTarget (empty string)
+            )
+
+        // Verify intent_uri_package_target is NOT set when empty
+        assertThat(katanaIntent[0]?.hasExtra("intent_uri_package_target")).isFalse()
+        assertThat(katanaIntent[0]?.getStringExtra("intent_uri_package_target")).isNull()
+
+        val wakizashiIntent = katanaIntent[1]
+        assertThat(wakizashiIntent?.hasExtra("intent_uri_package_target")).isFalse()
+        assertThat(wakizashiIntent?.getStringExtra("intent_uri_package_target")).isNull()
+    }
+
+    @Test
     fun `test validate null intent for service intent`() {
         val mockContext = mock<Context>()
         setUpMockingForServiceIntentGeneration(mockContext)

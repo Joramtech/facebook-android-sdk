@@ -225,7 +225,7 @@ class WebLoginMethodHandlerTest : FacebookPowerMockTestCase() {
 
     val initialParameters = Bundle()
     val updatedParameters = testHandler.addExtraParameters(initialParameters, requestWithEmptyRedirectURI)
-    
+
     // Verify that redirect_uri uses default value when empty string is provided
     assertThat(updatedParameters.getString(ServerProtocol.DIALOG_PARAM_REDIRECT_URI))
         .isEqualTo(testHandler.getRedirectUrl())

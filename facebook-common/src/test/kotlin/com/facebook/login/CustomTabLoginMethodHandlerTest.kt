@@ -377,6 +377,211 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
         assertThat(requestWithRedirectURI.redirectURI).isEqualTo(testRedirectURI)
     }
 
+    @Test
+    fun testAddExtraParametersWithIntentUriPackageTarget() {
+        mockCustomTabRedirectActivity(true)
+        val handler = CustomTabLoginMethodHandler(mockLoginClient)
+        val packageName = "com.example.app"
+        val expectedIntentUri = "intent://$packageName"
+
+        // Create a request with intentUriPackageTarget but no custom redirectURI
+        val requestWithIntentUri = LoginClient.Request(
+            LoginBehavior.NATIVE_WITH_FALLBACK,
+            HashSet(PERMISSIONS),
+            DefaultAudience.FRIENDS,
+            "rerequest",
+            "1234",
+            "5678",
+            LoginTargetApp.FACEBOOK,
+            AuthenticationTokenTestUtil.NONCE,
+            CODE_VERIFIER,
+            CODE_CHALLENGE,
+            CodeChallengeMethod.S256,
+            null, // no custom redirectURI
+            packageName) // just package name, SDK will construct intent URI
+
+        // Create initial parameters bundle
+        val initialParameters = Bundle()
+        initialParameters.putString("existing_param", "existing_value")
+
+        // Call addExtraParameters using reflection to access protected method
+        val updatedParameters = Whitebox.invokeMethod<Bundle>(
+            handler,
+            "addExtraParameters",
+            initialParameters,
+            requestWithIntentUri
+        )
+
+        // Verify that redirect_uri parameter is overridden with constructed intent URI
+        assertThat(updatedParameters.getString("redirect_uri")).isEqualTo(expectedIntentUri)
+        // Verify https_redirect_uri parameter is NOT included (web request should only use redirect_uri)
+        assertThat(updatedParameters.containsKey("https_redirect_uri")).isFalse()
+        // Verify intent_uri_package_target parameter is NOT included (only for internal SDK use)
+        assertThat(updatedParameters.containsKey("intent_uri_package_target")).isFalse()
+        // Verify existing parameters are preserved
+        assertThat(updatedParameters.getString("existing_param")).isEqualTo("existing_value")
+    }
+
+    @Test
+    fun testAddExtraParametersRedirectURITakesPriorityOverIntentUriPackageTarget() {
+        mockCustomTabRedirectActivity(true)
+        val handler = CustomTabLoginMethodHandler(mockLoginClient)
+        val customRedirectURI = "https://example.com/custom/redirect"
+        val packageName = "com.example.app"
+
+        // Create a request with both redirectURI and intentUriPackageTarget
+        val requestWithBoth = LoginClient.Request(
+            LoginBehavior.NATIVE_WITH_FALLBACK,
+            HashSet(PERMISSIONS),
+            DefaultAudience.FRIENDS,
+            "rerequest",
+            "1234",
+            "5678",
+            LoginTargetApp.FACEBOOK,
+            AuthenticationTokenTestUtil.NONCE,
+            CODE_VERIFIER,
+            CODE_CHALLENGE,
+            CodeChallengeMethod.S256,
+            customRedirectURI, // custom redirectURI provided
+            packageName) // intentUriPackageTarget also provided (just package name)
+
+        // Create initial parameters bundle
+        val initialParameters = Bundle()
+
+        // Call addExtraParameters using reflection to access protected method
+        val updatedParameters = Whitebox.invokeMethod<Bundle>(
+            handler,
+            "addExtraParameters",
+            initialParameters,
+            requestWithBoth
+        )
+
+        // Verify that redirect_uri uses customRedirectURI (takes priority)
+        assertThat(updatedParameters.getString("redirect_uri")).isEqualTo(customRedirectURI)
+        // Verify https_redirect_uri parameter is NOT included
+        assertThat(updatedParameters.containsKey("https_redirect_uri")).isFalse()
+        // Verify intent_uri_package_target parameter is NOT included
+        assertThat(updatedParameters.containsKey("intent_uri_package_target")).isFalse()
+    }
+
+    @Test
+    fun testTryAuthorizeWithIntentUriPackageTarget() {
+        mockCustomTabRedirectActivity(true)
+        mockChromeCustomTabsSupported(true, CHROME_PACKAGE)
+        val handler = CustomTabLoginMethodHandler(mockLoginClient)
+        val packageName = "com.example.app"
+
+        // Create a request with intentUriPackageTarget
+        val requestWithIntentUri = LoginClient.Request(
+            LoginBehavior.NATIVE_WITH_FALLBACK,
+            HashSet(PERMISSIONS),
+            DefaultAudience.FRIENDS,
+            "rerequest",
+            "1234",
+            "5678",
+            LoginTargetApp.FACEBOOK,
+            AuthenticationTokenTestUtil.NONCE,
+            CODE_VERIFIER,
+            CODE_CHALLENGE,
+            CodeChallengeMethod.S256,
+            null, // no custom redirectURI
+            packageName) // just package name, SDK will construct intent URI
+
+        // Call tryAuthorize - this should process the intentUriPackageTarget through addExtraParameters
+        val result = handler.tryAuthorize(requestWithIntentUri)
+
+        // Verify that the operation completed successfully (should return 1 for success)
+        assertThat(result).isEqualTo(1)
+        // Verify that the request's intentUriPackageTarget is preserved
+        assertThat(requestWithIntentUri.intentUriPackageTarget).isEqualTo(packageName)
+    }
+
+    @Test
+    fun testAddExtraParametersWithNullIntentUriPackageTarget() {
+        mockCustomTabRedirectActivity(true)
+        val handler = CustomTabLoginMethodHandler(mockLoginClient)
+
+        // Create a request with null intentUriPackageTarget and no redirectURI
+        val requestWithNullIntentUri = LoginClient.Request(
+            LoginBehavior.NATIVE_WITH_FALLBACK,
+            HashSet(PERMISSIONS),
+            DefaultAudience.FRIENDS,
+            "rerequest",
+            "1234",
+            "5678",
+            LoginTargetApp.FACEBOOK,
+            AuthenticationTokenTestUtil.NONCE,
+            CODE_VERIFIER,
+            CODE_CHALLENGE,
+            CodeChallengeMethod.S256,
+            null, // no custom redirectURI
+            null) // null intentUriPackageTarget
+
+        // Create initial parameters bundle
+        val initialParameters = Bundle()
+        initialParameters.putString("existing_param", "existing_value")
+
+        // Call addExtraParameters using reflection to access protected method
+        val updatedParameters = Whitebox.invokeMethod<Bundle>(
+            handler,
+            "addExtraParameters",
+            initialParameters,
+            requestWithNullIntentUri
+        )
+
+        // Verify that redirect_uri uses default value when both are null
+        assertThat(updatedParameters.getString("redirect_uri")).isNotNull()
+        // Verify no separate intent_uri_package_target parameter (should be rewritten into redirect_uri)
+        assertThat(updatedParameters.containsKey("intent_uri_package_target")).isFalse()
+        // Verify no separate https_redirect_uri parameter
+        assertThat(updatedParameters.containsKey("https_redirect_uri")).isFalse()
+        // Verify existing parameters are preserved
+        assertThat(updatedParameters.getString("existing_param")).isEqualTo("existing_value")
+    }
+
+    @Test
+    fun testAddExtraParametersWithEmptyIntentUriPackageTarget() {
+        mockCustomTabRedirectActivity(true)
+        val handler = CustomTabLoginMethodHandler(mockLoginClient)
+
+        // Create a request with empty intentUriPackageTarget and no redirectURI
+        val requestWithEmptyIntentUri = LoginClient.Request(
+            LoginBehavior.NATIVE_WITH_FALLBACK,
+            HashSet(PERMISSIONS),
+            DefaultAudience.FRIENDS,
+            "rerequest",
+            "1234",
+            "5678",
+            LoginTargetApp.FACEBOOK,
+            AuthenticationTokenTestUtil.NONCE,
+            CODE_VERIFIER,
+            CODE_CHALLENGE,
+            CodeChallengeMethod.S256,
+            null, // no custom redirectURI
+            "") // empty intentUriPackageTarget
+
+        // Create initial parameters bundle
+        val initialParameters = Bundle()
+        initialParameters.putString("existing_param", "existing_value")
+
+        // Call addExtraParameters using reflection to access protected method
+        val updatedParameters = Whitebox.invokeMethod<Bundle>(
+            handler,
+            "addExtraParameters",
+            initialParameters,
+            requestWithEmptyIntentUri
+        )
+
+        // Verify that redirect_uri uses default value when intentUriPackageTarget is empty
+        assertThat(updatedParameters.getString("redirect_uri")).isNotNull()
+        // Verify no separate intent_uri_package_target parameter
+        assertThat(updatedParameters.containsKey("intent_uri_package_target")).isFalse()
+        // Verify no separate https_redirect_uri parameter
+        assertThat(updatedParameters.containsKey("https_redirect_uri")).isFalse()
+        // Verify existing parameters are preserved
+        assertThat(updatedParameters.getString("existing_param")).isEqualTo("existing_value")
+    }
+
     private fun createRequestWithRedirectURI(redirectURI: String?): LoginClient.Request {
         return LoginClient.Request(
             LoginBehavior.NATIVE_WITH_FALLBACK,
