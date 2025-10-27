@@ -69,6 +69,7 @@ object FacebookSdk {
     @Volatile
     private var applicationName: String? = null
     private var redirectURI: String? = null
+    private var intentUriPackageTarget: String? = null
     @Volatile
     private var appClientToken: String? = null
     @Volatile
@@ -101,6 +102,9 @@ object FacebookSdk {
 
     /** The key for the HTTPS Redirect URI in the Android manifest. */
     const val APPLICATION_REDIRECT_URI = "com.facebook.sdk.RedirectURI"
+
+    /** The key for the Intent URI Package Target in the Android manifest. */
+    const val APPLICATION_INTENT_URI_PACKAGE_TARGET = "com.facebook.sdk.IntentUriPackageTarget"
 
     /** The key for the application name in the Android manifest. */
     const val APPLICATION_NAME_PROPERTY = "com.facebook.sdk.ApplicationName"
@@ -818,6 +822,7 @@ object FacebookSdk {
             }
         }
         redirectURI = ai.metaData.getString(APPLICATION_REDIRECT_URI)
+        intentUriPackageTarget = ai.metaData.getString(APPLICATION_INTENT_URI_PACKAGE_TARGET)
 
         if (applicationName == null) {
             applicationName = ai.metaData.getString(APPLICATION_NAME_PROPERTY)
@@ -898,6 +903,21 @@ object FacebookSdk {
         Validate.sdkInitialized()
         return this.redirectURI.orEmpty()
 
+    }
+
+    /**
+     * Gets the Intent URI Package Target configured by the application. This specifies
+     * the package name to target when launching intent URIs during login redirects.
+     *
+     * Note: This should be just the package name (e.g., "com.example.app").
+     * The SDK will automatically construct the intent URI format: "intent://<packageName>"
+     *
+     * @return the package name to use for intent URI redirects
+     */
+    @JvmStatic
+    fun getIntentUriPackageTarget(): String {
+        Validate.sdkInitialized()
+        return this.intentUriPackageTarget.orEmpty()
     }
 
     /**

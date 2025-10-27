@@ -36,6 +36,7 @@ import com.facebook.FacebookSdk
 import com.facebook.FacebookSdk.getApplicationContext
 import com.facebook.FacebookSdk.getApplicationId
 import com.facebook.FacebookSdk.getRedirectURI
+import com.facebook.FacebookSdk.getIntentUriPackageTarget
 import com.facebook.FacebookSdk.getGraphApiVersion
 import com.facebook.GraphResponse
 import com.facebook.LoginStatusCallback
@@ -943,7 +944,8 @@ open class LoginManager() {
             loginConfig.codeVerifier,
             codeChallenge,
             codeChallengeMethod,
-            getRedirectURI())
+            getRedirectURI(),
+            getIntentUriPackageTarget())
     request.isRerequest = AccessToken.isCurrentAccessTokenActive()
     request.messengerPageId = messengerPageId
     request.resetMessengerState = resetMessengerState
@@ -962,7 +964,8 @@ open class LoginManager() {
             getApplicationId(),
             UUID.randomUUID().toString(),
             loginTargetApp,
-            redirectURI = getRedirectURI().toString())
+            redirectURI = getRedirectURI().toString(),
+            intentUriPackageTarget = getIntentUriPackageTarget())
     request.isRerequest = AccessToken.isCurrentAccessTokenActive()
     request.messengerPageId = messengerPageId
     request.resetMessengerState = resetMessengerState
@@ -981,7 +984,8 @@ open class LoginManager() {
             getApplicationId(),
             UUID.randomUUID().toString(),
             loginTargetApp,
-            redirectURI = getRedirectURI().toString())
+            redirectURI = getRedirectURI().toString(),
+            intentUriPackageTarget = getIntentUriPackageTarget())
     request.isFamilyLogin = isFamilyLogin
     request.setShouldSkipAccountDeduplication(shouldSkipAccountDeduplication)
     return request

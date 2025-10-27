@@ -302,6 +302,7 @@ object NativeProtocol {
             null,
             null,
             null,
+            null
             )
     intent = validateActivityIntent(context, intent, appInfo)
     return intent
@@ -325,7 +326,8 @@ object NativeProtocol {
       nonce: String?,
       codeChallenge: String?,
       codeChallengeMethod: String?,
-      redirectURI: String?
+      redirectURI: String?,
+      intentUriPackageTarget: String?
   ): Intent? {
     val activityName = appInfo.getLoginActivity() ?: return null
     // the NativeApp doesn't have a login activity
@@ -375,10 +377,28 @@ object NativeProtocol {
       intent.putExtra(ServerProtocol.DIALOG_PARAM_SKIP_DEDUPE, true)
     }
 
-    if(!redirectURI.isNullOrEmpty()) {
+    // For Katana native flow:
+    // - If redirectURI is provided, use DIALOG_HTTPS_REDIRECT_URI
+    // - Otherwise, if intentUriPackageTarget is provided, build intent URI and pass it
+    if (!redirectURI.isNullOrEmpty()) {
       intent.putExtra(ServerProtocol.DIALOG_HTTPS_REDIRECT_URI, redirectURI)
+    } else if (!intentUriPackageTarget.isNullOrEmpty()) {
+      val intentUri = buildIntentUriFromPackage(intentUriPackageTarget)
+      intent.putExtra("intent_uri_package_target", intentUri)
     }
+
     return intent
+  }
+
+  /**
+   * Builds an intent URI from a package name.
+   * Format: intent://<packageName>
+   *
+   * @param packageName The package name to include in the intent URI
+   * @return The intent URI string
+   */
+  private fun buildIntentUriFromPackage(packageName: String): String {
+    return "intent://$packageName"
   }
 
   @JvmStatic
@@ -400,7 +420,8 @@ object NativeProtocol {
       nonce: String?,
       codeChallenge: String?,
       codeChallengeMethod: String? = "S256",
-      redirectURI: String?
+      redirectURI: String?,
+      intentUriPackageTarget: String?
   ): List<Intent> {
     return facebookAppInfoList.mapNotNull {
       createNativeAppIntent(
@@ -421,7 +442,8 @@ object NativeProtocol {
           nonce,
           codeChallenge,
           codeChallengeMethod,
-          redirectURI)
+          redirectURI,
+          intentUriPackageTarget)
     }
   }
 

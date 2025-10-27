@@ -184,8 +184,8 @@ open class WebViewLoginMethodHandler : WebLoginMethodHandler {
 
       // Create WebDialog - use custom one only if original request had a non-empty custom redirect URI
       return if (hasCustomRedirectUri) {
-        val customRedirectUri = originalRequest.redirectURI!!
-        CustomRedirectWebDialog.create(this.context as Context, OAUTH_DIALOG, parameters, theme, this.targetApp, listener, customRedirectUri)
+        // For custom redirect URIs, use CustomRedirectWebDialog
+        CustomRedirectWebDialog.create(this.context as Context, OAUTH_DIALOG, parameters, theme, this.targetApp, listener, originalRequest.redirectURI!!)
       } else {
         WebDialog.newInstance(this.context as Context, OAUTH_DIALOG, parameters, theme, this.targetApp, listener)
       }
@@ -244,8 +244,8 @@ open class WebViewLoginMethodHandler : WebLoginMethodHandler {
         // Critical: Set display=touch for proper mobile WebView sizing (same as WebDialog)
         dialogParameters.putString(ServerProtocol.DIALOG_PARAM_DISPLAY, "touch")
 
-        // Set our custom redirect URI instead of the default one
-        dialogParameters.putString(ServerProtocol.DIALOG_PARAM_REDIRECT_URI, customRedirectUri)
+        // Note: redirect_uri is already set in the parameters by WebLoginMethodHandler.addExtraParameters()
+        // We don't need to set it again here - it already contains the correct value (customRedirectUri)
 
         // Set required parameters exactly like WebDialog.newInstance() does
         dialogParameters.putString(ServerProtocol.DIALOG_PARAM_CLIENT_ID, FacebookSdk.getApplicationId())

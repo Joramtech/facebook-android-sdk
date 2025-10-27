@@ -93,6 +93,30 @@ class CustomTabLoginMethodHandler : WebLoginMethodHandler {
       return currentPackage
     }
 
+  override fun addExtraParameters(parameters: Bundle, request: Request): Bundle {
+    // Call parent implementation first to set up base parameters
+    val updatedParameters = super.addExtraParameters(parameters, request)
+
+    // For CustomTab, override redirect_uri if intentUriPackageTarget is provided
+    // Priority order: redirectURI > intentUriPackageTarget > default
+    val redirectUri = when {
+      !request.redirectURI.isNullOrEmpty() -> request.redirectURI
+      !request.intentUriPackageTarget.isNullOrEmpty() -> buildIntentUriFromPackage(request.intentUriPackageTarget!!)
+      else -> getRedirectUrl()
+    }
+    updatedParameters.putString(ServerProtocol.DIALOG_PARAM_REDIRECT_URI, redirectUri)
+
+    return updatedParameters
+  }
+
+  /**
+   * Builds an intent URI from a package name.
+   * Format: intent://<packageName>
+   */
+  private fun buildIntentUriFromPackage(packageName: String): String {
+    return "intent://$packageName"
+  }
+
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
     if (data != null) {
       val hasNoBrowserException =

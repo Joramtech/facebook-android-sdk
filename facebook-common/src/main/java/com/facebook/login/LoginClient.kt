@@ -395,6 +395,7 @@ open class LoginClient : Parcelable {
     val defaultAudience: DefaultAudience
     val applicationId: String
     var redirectURI: String? = null
+    var intentUriPackageTarget: String? = null
     var authId: String
     var isRerequest = false
     var deviceRedirectUriString: String? = null
@@ -424,7 +425,8 @@ open class LoginClient : Parcelable {
         codeVerifier: String? = null,
         codeChallenge: String? = null,
         codeChallengeMethod: CodeChallengeMethod? = null,
-        redirectURI: String? = null
+        redirectURI: String? = null,
+        intentUriPackageTarget: String? = null
     ) {
       this.loginBehavior = loginBehavior
       this.permissions = permissions ?: HashSet()
@@ -432,6 +434,7 @@ open class LoginClient : Parcelable {
       this.authType = authType
       this.applicationId = applicationId
       this.redirectURI = redirectURI
+      this.intentUriPackageTarget = intentUriPackageTarget
       this.authId = authId
       loginTargetApp = targetApp ?: LoginTargetApp.FACEBOOK
       if (nonce == null || nonce.isEmpty()) {
@@ -474,6 +477,7 @@ open class LoginClient : Parcelable {
           else DefaultAudience.NONE
       applicationId = Validate.notNullOrEmpty(parcel.readString(), "applicationId")
       redirectURI = parcel.readString()
+      intentUriPackageTarget = parcel.readString()
       authId = Validate.notNullOrEmpty(parcel.readString(), "authId")
       isRerequest = parcel.readByte().toInt() != 0
       deviceRedirectUriString = parcel.readString()
@@ -502,6 +506,7 @@ open class LoginClient : Parcelable {
       dest.writeString(defaultAudience.name)
       dest.writeString(applicationId)
       dest.writeString(redirectURI)
+      dest.writeString(intentUriPackageTarget)
       dest.writeString(authId)
       dest.writeByte((if (isRerequest) 1 else 0).toByte())
       dest.writeString(deviceRedirectUriString)

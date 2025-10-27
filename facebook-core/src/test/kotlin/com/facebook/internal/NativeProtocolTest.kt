@@ -209,7 +209,8 @@ class NativeProtocolTest : FacebookPowerMockTestCase() {
                 AuthenticationTokenTestUtil.NONCE,
                 "codeChallenge",
                 "S256",
-                null
+                null, // redirectURI
+                null // intentUriPackageTarget
             )
 
         assertThat(intents.size).isEqualTo(2)
@@ -263,7 +264,11 @@ class NativeProtocolTest : FacebookPowerMockTestCase() {
     //            false, // isFamilyLogin
     //            false, // shouldSkipAccountDedupe
     //            AuthenticationTokenTestUtil.NONCE,
-    //            "codeChallenge")
+    //            "codeChallenge",
+    //            null, // codeChallengeMethod
+    //            null, // redirectURI
+    //            null // intentUriPackageTarget
+    //        )
     //
     //    assertThat(intents.size).isEqualTo(2)
     //    val katanaIntent = intents[0]
@@ -297,9 +302,10 @@ class NativeProtocolTest : FacebookPowerMockTestCase() {
                 false, // isFamilyLogin
                 false, // shouldSkipAccountDedupe
                 AuthenticationTokenTestUtil.NONCE,
-                null,
-                null,
-                null
+                null, // codeChallenge
+                null, // codeChallengeMethod
+                null, // redirectURI
+                null // intentUriPackageTarget
             )
 
         assertThat(intents.size).isEqualTo(2)

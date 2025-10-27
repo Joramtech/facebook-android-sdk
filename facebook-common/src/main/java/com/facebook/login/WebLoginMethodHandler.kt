@@ -72,10 +72,9 @@ abstract class WebLoginMethodHandler : LoginMethodHandler {
 
   protected open fun addExtraParameters(parameters: Bundle, request: LoginClient.Request): Bundle {
     // Use provided redirectURI if available, otherwise use default redirect URL
-    val redirectUri = if (!request.redirectURI.isNullOrEmpty()) {
-      request.redirectURI
-    } else {
-      getRedirectUrl()
+    val redirectUri = when {
+      !request.redirectURI.isNullOrEmpty() -> request.redirectURI
+      else -> getRedirectUrl()
     }
     parameters.putString(ServerProtocol.DIALOG_PARAM_REDIRECT_URI, redirectUri)
 
