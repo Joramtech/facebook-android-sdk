@@ -61,14 +61,6 @@ object AppEventsCAPIManager {
       savedSettings[SettingsAPIFields.DATASETID.rawValue] = datasetID
       savedSettings[SettingsAPIFields.ACCESSKEY.rawValue] = accessKey
 
-      Logger.log(
-          LoggingBehavior.APP_EVENTS,
-          TAG.toString(),
-          " \n\nLoading Cloudbridge settings from saved Prefs: \n================\n DATASETID: %s\n URL: %s \n ACCESSKEY: %s \n\n ",
-          datasetID,
-          url,
-          accessKey)
-
       return savedSettings
     }
     set(valuesToSave) {

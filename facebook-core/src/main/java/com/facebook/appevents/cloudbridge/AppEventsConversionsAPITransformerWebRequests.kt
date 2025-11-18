@@ -61,14 +61,6 @@ object AppEventsConversionsAPITransformerWebRequests {
    * @property accessKey CAPI G secret access key
    */
   fun configure(datasetID: String, url: String, accessKey: String) {
-    Logger.log(
-        LoggingBehavior.APP_EVENTS,
-        TAG,
-        " \n\nCloudbridge Configured: \n================\ndatasetID: %s\nurl: %s\naccessKey: %s\n\n",
-        datasetID,
-        url,
-        accessKey)
-
     credentials = CloudBridgeCredentials(datasetID, url, accessKey)
     transformedEvents = mutableListOf()
   }
@@ -135,20 +127,6 @@ object AppEventsConversionsAPITransformerWebRequests {
       jsonMap["data"] = jsonArr
       jsonMap["accessKey"] = this.credentials.accessKey
       val jsonBodyStr = JSONObject(jsonMap)
-
-      Logger.log(
-          LoggingBehavior.APP_EVENTS,
-          TAG,
-          "\nTransformed_CAPI_JSON:\n" +
-              "URL: %s\n" +
-              "FROM=========\n" +
-              "%s\n" +
-              ">>>>>>TO>>>>>>\n" +
-              "%s\n" +
-              "=============\n",
-          cbEndpoint,
-          request,
-          jsonBodyStr.toString(2))
 
       makeHttpRequest(
           cbEndpoint,
